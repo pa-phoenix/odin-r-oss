@@ -1,3 +1,9 @@
+ifeq ($(CONFIG_MACH_XIAOMI),y)
+ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
+dtbo-$(CONFIG_MACH_XIAOMI_VIOLET) += violet-sm6150-overlay.dtbo
+violet-sm6150-overlay.dtbo-base := sm6150.dtb
+endif
+else
 ifneq ($(CONFIG_ARCH_QTI_VM), y)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 dtbo-$(CONFIG_ARCH_LAHAINA) += lahaina-rumi-overlay.dtbo \
@@ -462,6 +468,7 @@ dtb-$(CONFIG_ARCH_DIREWOLF) += direwolf-ivi-rumi.dtb \
 	direwolf-adas-adp-star.dtb
 endif
 
+endif
 always		:= $(dtb-y)
 subdir-y	:= $(dts-dirs)
 clean-files	:= *.dtb *.dtbo
