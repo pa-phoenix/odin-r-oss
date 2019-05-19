@@ -36,6 +36,7 @@ struct msm_audio_ion_private {
 	struct mutex list_mutex;
 	u64 smmu_sid_bits;
 	u32 smmu_version;
+	u32 non_fatal_fault;
 };
 
 struct msm_audio_alloc_data {
@@ -109,6 +110,7 @@ static int msm_audio_dma_buf_map(struct dma_buf *dma_buf,
 
 	if (!(ionflag & ION_FLAG_CACHED))
 		alloc_data->attach->dma_map_attrs |= DMA_ATTR_SKIP_CPU_SYNC;
+		alloc_data->attach->dma_map_attrs |= DMA_ATTR_EXEC_MAPPING;
 
 	/*
 	 * Get the scatter-gather list.
@@ -780,6 +782,16 @@ EXPORT_SYMBOL(msm_audio_populate_upper_32_bits);
 
 static int msm_audio_smmu_init(struct device *dev)
 {
+
+	msm_audio_ion_data.non_fatal_fault = 1;
+	if (iommu_domain_set_attr(mapping->domain,
+			DOMAIN_ATTR_NON_FATAL_FAULTS,
+			&msm_audio_ion_data.non_fatal_fault) < 0) {
+		dev_err(dev,
+			"%s: Error: failed to set non fatal fault attribute\n",
+			__func__);
+	}
+
 	INIT_LIST_HEAD(&msm_audio_ion_data.alloc_list);
 	mutex_init(&(msm_audio_ion_data.list_mutex));
 

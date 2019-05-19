@@ -93,6 +93,7 @@ struct wcd937x_priv {
 	u8 tx_master_ch_map[WCD937X_MAX_SLAVE_CH_TYPES];
 	bool usbc_hs_status;
 	u32 tx_ch_pwr[MAX_TX_PWR_CH];
+	int ear_rx_path;
 };
 
 struct wcd937x_micbias_setting {

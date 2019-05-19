@@ -168,7 +168,7 @@ static int wcd937x_init_reg(struct snd_soc_component *component)
 				0x40, 0x40);
 	usleep_range(10000, 10010);
 	snd_soc_component_update_bits(component, WCD937X_ANA_BIAS,
-				0x40, 0x00);
+				0x40, 0x40);
 	snd_soc_component_update_bits(component,
 				WCD937X_HPH_SURGE_HPHLR_SURGE_EN,
 				0xFF, 0xD9);
@@ -718,8 +718,13 @@ static int wcd937x_codec_enable_hphr_pa(struct snd_soc_dapm_widget *w,
 					0x10, 0x10);
 		usleep_range(100, 110);
 		set_bit(HPH_PA_DELAY, &wcd937x->status_mask);
-		snd_soc_component_update_bits(component,
-				WCD937X_DIGITAL_PDM_WD_CTL1, 0x17, 0x13);
+		ret = swr_slvdev_datapath_control(wcd937x->rx_swr_dev,
+					    wcd937x->rx_swr_dev->dev_num,
+					    true);
+		snd_soc_update_bits(codec, WCD937X_DIGITAL_PDM_WD_CTL1,
+				    0x17, 0x13);
+                snd_soc_component_update_bits(component,
+                                WCD937X_DIGITAL_PDM_WD_CTL1, 0x17, 0x13);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		/*
@@ -980,6 +985,18 @@ static int wcd937x_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 		if (!wcd937x->comp1_enable)
 			snd_soc_component_update_bits(component,
 				WCD937X_ANA_EAR_COMPANDER_CTL, 0x80, 0x80);
+		/*
+		 * Enable watchdog interrupt for HPHL or AUX
+		 * depending on mux value
+		 */
+		wcd937x->ear_rx_path =
+			snd_soc_read(codec, WCD937X_DIGITAL_CDC_EAR_PATH_CTL);
+		if (wcd937x->ear_rx_path & EAR_RX_PATH_AUX)
+			snd_soc_update_bits(codec, WCD937X_DIGITAL_PDM_WD_CTL2,
+					    0x05, 0x05);
+		else
+			snd_soc_update_bits(codec, WCD937X_DIGITAL_PDM_WD_CTL0,
+					    0x17, 0x13);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		usleep_range(6000, 6010);
@@ -1719,6 +1736,9 @@ static int __wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_PRE_PMU:
 		wcd937x_micbias_control(component, micb_num,
 				MICB_ENABLE, true);
+		usleep_range(10000, 11000); //add 10ms delay
+		dev_dbg(codec->dev, "%s: wname: %s, event: %d add 10ms delay\n",
+			__func__, w->name, event);
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		usleep_range(1000, 1100);
